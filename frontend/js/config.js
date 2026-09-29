@@ -1,9 +1,9 @@
 // frontend/js/config.js
 /**
- * VoltFlow Global Configuration
+ * ElB_Connect Global Configuration
  */
 const CONFIG = {
-    APP_NAME: "VoltFlow",
+    APP_NAME: "ElB_Connect",
     VERSION: "1.0.0",
     
     // Automatically resolve API Base URL

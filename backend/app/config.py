@@ -9,7 +9,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 class Settings(BaseSettings):
     """Application runtime configurations."""
-    APP_NAME: str = "VoltFlow — Electricity Board Management API"
+    APP_NAME: str = "ElB_Connect — Electricity Board Management API"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = True
     ENVIRONMENT: str = "development"
