@@ -1,9 +1,9 @@
 // frontend/js/app.js
 /**
- * VoltFlow — Main Frontend Application Logic
+ * VoltFlow — Core Frontend Controller
  */
 
-// Application State
+// Global Application State
 const State = {
     currentView: "dashboard",
     applications: {
@@ -37,7 +37,7 @@ document.addEventListener("DOMContentLoaded", () => {
     initGlobalEventListeners();
     initQuotationCalculator();
     
-    // Check initial URL hash (e.g., #applications or #dashboard)
+    // Check initial URL hash
     const initialHash = window.location.hash.replace("#", "");
     if (initialHash && ["dashboard", "applications", "inspections", "meters", "grievances", "track"].includes(initialHash)) {
         switchView(initialHash);
@@ -56,7 +56,6 @@ function initNavigation() {
                 switchView(view);
                 window.location.hash = view;
             }
-            // Close mobile menu if open
             document.querySelector(".sidebar")?.classList.remove("mobile-open");
         });
     });
@@ -68,11 +67,10 @@ function initNavigation() {
         }
     });
 
-    // Mobile hamburger toggle
     const toggleBtn = document.getElementById("mobile-menu-toggle");
     if (toggleBtn) {
         toggleBtn.addEventListener("click", () => {
-            document.querySelector(".sidebar").classList.toggle("mobile-open");
+            document.querySelector(".sidebar")?.classList.toggle("mobile-open");
         });
     }
 }
@@ -80,7 +78,7 @@ function initNavigation() {
 function switchView(viewName) {
     State.currentView = viewName;
 
-    // Update active nav link
+    // Update active nav item
     document.querySelectorAll(".nav-link").forEach(link => {
         link.classList.toggle("active", link.getAttribute("data-view") === viewName);
     });
@@ -89,12 +87,12 @@ function switchView(viewName) {
     document.querySelectorAll(".view-section").forEach(sec => {
         sec.classList.remove("active");
     });
-    const targetSection = document.getElementById(`view-${viewName}`);
-    if (targetSection) {
-        targetSection.classList.add("active");
+    const target = document.getElementById(`view-${viewName}`);
+    if (target) {
+        target.classList.add("active");
     }
 
-    // Load view data
+    // Fetch view specific data
     switch (viewName) {
         case "dashboard":
             loadDashboard();
@@ -111,13 +109,10 @@ function switchView(viewName) {
         case "grievances":
             loadGrievances();
             break;
-        case "track":
-            // track view is ready for consumer search
-            break;
     }
 }
 
-// --- Live Quotation Calculator for Application Form ---
+// --- Dynamic Live Quotation Calculator ---
 function initQuotationCalculator() {
     const categorySelect = document.getElementById("app-form-category");
     const loadInput = document.getElementById("app-form-load");
@@ -169,16 +164,14 @@ function initQuotationCalculator() {
     if (phaseSelect) phaseSelect.addEventListener("change", updateCalc);
 }
 
-// --- Global Event Listeners ---
+// --- Event Listeners Initialization ---
 function initGlobalEventListeners() {
-    // Top header search
     const headerSearch = document.getElementById("header-global-search");
     if (headerSearch) {
         headerSearch.addEventListener("keydown", (e) => {
             if (e.key === "Enter") {
                 const term = headerSearch.value.trim();
                 if (term) {
-                    // Check if search matches Application ID pattern
                     if (/^APP-\d{4}-\d{4}$/i.test(term)) {
                         switchView("track");
                         document.getElementById("track-input").value = term;
@@ -194,7 +187,7 @@ function initGlobalEventListeners() {
         });
     }
 
-    // Modal background click to close
+    // Modal background close
     document.querySelectorAll(".modal").forEach(modal => {
         modal.addEventListener("click", (e) => {
             if (e.target === modal) {
@@ -203,14 +196,13 @@ function initGlobalEventListeners() {
         });
     });
 
-    // Close buttons
     document.querySelectorAll(".modal-close, [data-close-modal]").forEach(btn => {
         btn.addEventListener("click", () => {
             UI.closeAllModals();
         });
     });
 
-    // Form Submissions
+    // Form handlers
     document.getElementById("form-new-application")?.addEventListener("submit", handleCreateApplication);
     document.getElementById("form-edit-application")?.addEventListener("submit", handleUpdateApplication);
     document.getElementById("form-schedule-inspection")?.addEventListener("submit", handleScheduleInspection);
@@ -226,22 +218,21 @@ function initGlobalEventListeners() {
 }
 
 // =============================================================================
-// 1. DASHBOARD VIEW
+// 1. DASHBOARD
 // =============================================================================
 async function loadDashboard() {
     try {
         const stats = await API.getDashboardStats();
 
-        // Update KPI counters
         document.getElementById("kpi-total-apps").textContent = stats.total_applications;
         document.getElementById("kpi-active-meters").textContent = stats.active_meters;
         document.getElementById("kpi-sanctioned-load").textContent = `${stats.total_sanctioned_load_mw} MW`;
-        document.getElementById("kpi-sanctioned-sub").textContent = `${stats.total_sanctioned_load_kw.toLocaleString()} kW sanctioned`;
+        document.getElementById("kpi-sanctioned-sub").textContent = `${stats.total_sanctioned_load_kw.toLocaleString()} kW total load`;
         document.getElementById("kpi-pending-verif").textContent = stats.pending_verifications;
         document.getElementById("kpi-active-grievances").textContent = stats.active_grievances;
         document.getElementById("kpi-revenue").textContent = UI.formatCurrency(stats.estimated_revenue_inr);
 
-        // Render Category Load Bars
+        // Render Load Distribution Bars
         const catContainer = document.getElementById("dashboard-category-bars");
         if (catContainer) {
             const maxLoad = Math.max(...stats.category_distribution.map(c => c.total_load_kw), 1);
@@ -253,9 +244,9 @@ async function loadDashboard() {
                         <div class="cat-progress-header">
                             <div>
                                 ${UI.getCategoryBadge(cat.category)}
-                                <span style="font-size: 0.8rem; color: var(--text-muted); margin-left: 6px;">(${cat.count} connections)</span>
+                                <span style="font-size: 0.78rem; color: var(--text-muted); margin-left: 6px;">(${cat.count} connections)</span>
                             </div>
-                            <span style="font-weight: 700; color: var(--text-main);">${cat.total_load_kw} kW</span>
+                            <span style="font-weight: 700; color: var(--text-white);">${cat.total_load_kw} kW</span>
                         </div>
                         <div class="cat-progress-bar">
                             <div class="cat-progress-fill ${fillClass}" style="width: ${percent}%;"></div>
@@ -269,10 +260,10 @@ async function loadDashboard() {
         const subContainer = document.getElementById("dashboard-substations-list");
         if (subContainer) {
             subContainer.innerHTML = stats.substation_metrics.map(sub => `
-                <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.04);">
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04);">
                     <div>
-                        <div style="font-size: 0.88rem; font-weight: 600;">${sub.substation_name}</div>
-                        <div style="font-size: 0.75rem; color: var(--text-dim);">${sub.active_meters} active meters / ${sub.total_applications} apps</div>
+                        <div style="font-size: 0.84rem; font-weight: 600;">${sub.substation_name}</div>
+                        <div style="font-size: 0.74rem; color: var(--text-dim);">${sub.active_meters} active meters / ${sub.total_applications} apps</div>
                     </div>
                     <span class="badge badge-primary">${sub.total_load_kw} kW</span>
                 </div>
@@ -295,19 +286,19 @@ async function loadDashboard() {
         }
 
     } catch (error) {
-        UI.showToast("Failed to load dashboard statistics", "error");
+        console.error("Dashboard error:", error);
     }
 }
 
 // =============================================================================
-// 2. APPLICATIONS VIEW (CRUD + Filters)
+// 2. APPLICATIONS CRUD
 // =============================================================================
 async function loadApplications() {
     const tableBody = document.getElementById("applications-table-body");
     const countBadge = document.getElementById("apps-total-count");
     if (!tableBody) return;
 
-    tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 40px;"><div class="spinner" style="margin:0 auto 10px;"></div>Loading applications...</td></tr>`;
+    tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 30px;"><div class="spinner" style="margin:0 auto 8px;"></div>Loading applications...</td></tr>`;
 
     try {
         const res = await API.getApplications({
@@ -325,7 +316,6 @@ async function loadApplications() {
 
         if (countBadge) countBadge.textContent = `${res.total} Total`;
 
-        // Update pagination numbers
         document.getElementById("app-page-num").textContent = `Page ${res.page} of ${res.total_pages}`;
         document.getElementById("app-prev-btn").disabled = res.page <= 1;
         document.getElementById("app-next-btn").disabled = res.page >= res.total_pages;
@@ -335,11 +325,8 @@ async function loadApplications() {
                 <tr>
                     <td colspan="7">
                         <div class="empty-state">
-                            <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                            </svg>
                             <div class="empty-state-title">No Applications Found</div>
-                            <div class="empty-state-desc">Try adjusting your search criteria or create a new electricity connection application.</div>
+                            <div class="empty-state-desc">Try adjusting your filters or click Apply New Connection.</div>
                         </div>
                     </td>
                 </tr>
@@ -355,23 +342,23 @@ async function loadApplications() {
                         <a href="#" onclick="openDossierById(${app.id}); return false;" style="font-weight: 700; color: #38bdf8;">
                             ${app.application_number}
                         </a>
-                        <div style="font-size: 0.76rem; color: var(--text-dim);">${UI.formatDate(app.created_at)}</div>
+                        <div style="font-size: 0.74rem; color: var(--text-dim);">${UI.formatDate(app.created_at)}</div>
                     </td>
                     <td>
                         <div style="font-weight: 600;">${consumer.full_name || "—"}</div>
-                        <div style="font-size: 0.78rem; color: var(--text-muted);">${consumer.phone || "—"}</div>
+                        <div style="font-size: 0.76rem; color: var(--text-muted);">${consumer.phone || "—"}</div>
                     </td>
                     <td>
                         ${UI.getCategoryBadge(app.category)}
-                        <div style="font-size: 0.78rem; color: var(--text-dim); margin-top: 2px;">${app.connection_type}</div>
+                        <div style="font-size: 0.74rem; color: var(--text-dim); margin-top: 2px;">${app.connection_type}</div>
                     </td>
                     <td>
-                        <span style="font-weight: 700; color: var(--text-main);">${app.requested_load_kw} kW</span>
-                        <div style="font-size: 0.76rem; color: var(--text-dim);">${app.phase}</div>
+                        <span style="font-weight: 700; color: var(--text-white);">${app.requested_load_kw} kW</span>
+                        <div style="font-size: 0.74rem; color: var(--text-dim);">${app.phase}</div>
                     </td>
                     <td>
                         <div style="font-weight: 600; color: #38bdf8;">${UI.formatCurrency(app.quotation_amount)}</div>
-                        <span style="font-size: 0.72rem; color: ${app.payment_status === 'Paid' ? '#34d399' : '#f59e0b'}; font-weight: 700;">
+                        <span style="font-size: 0.7rem; color: ${app.payment_status === 'Paid' ? '#34d399' : '#f59e0b'}; font-weight: 700;">
                             ${app.payment_status.toUpperCase()}
                         </span>
                     </td>
@@ -393,11 +380,10 @@ async function loadApplications() {
         }).join("");
 
     } catch (error) {
-        tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--accent-rose); padding: 30px;">Error loading applications: ${error.message}</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--rose); padding: 20px;">Error: ${error.message}</td></tr>`;
     }
 }
 
-// Application Filters Event Handlers
 function onAppSearchChange() {
     State.applications.search = document.getElementById("app-search-input").value;
     State.applications.page = 1;
@@ -430,16 +416,11 @@ function changeAppPage(delta) {
     }
 }
 
-// =============================================================================
-// 3. APPLICATION CRUD MODALS & HANDLERS
-// =============================================================================
 function openNewApplicationModal() {
     document.getElementById("form-new-application").reset();
     document.getElementById("app-form-load").value = "5.0";
     document.getElementById("app-form-category").value = "Domestic";
     document.getElementById("app-form-phase").value = "Single Phase";
-    
-    // trigger live quotation calculation
     document.getElementById("app-form-category").dispatchEvent(new Event("change"));
     UI.openModal("modal-new-application");
 }
@@ -448,7 +429,7 @@ async function handleCreateApplication(e) {
     e.preventDefault();
     const btn = e.target.querySelector("button[type=submit]");
     btn.disabled = true;
-    btn.textContent = "Submitting Application...";
+    btn.textContent = "Submitting...";
 
     const payload = {
         connection_type: document.getElementById("app-form-conn-type").value,
@@ -477,7 +458,7 @@ async function handleCreateApplication(e) {
         loadApplications();
         loadDashboard();
     } catch (error) {
-        UI.showToast(`Failed to submit application: ${error.message}`, "error");
+        UI.showToast(`Submission failed: ${error.message}`, "error");
     } finally {
         btn.disabled = false;
         btn.textContent = "Submit Application";
@@ -493,7 +474,6 @@ async function openDossierById(appId) {
         document.getElementById("dossier-status-badge").innerHTML = UI.getStatusBadge(app.status);
         document.getElementById("dossier-category-badge").innerHTML = UI.getCategoryBadge(app.category);
 
-        // Stepper Progress
         const stages = [
             "Submitted",
             "Document_Verified",
@@ -506,7 +486,7 @@ async function openDossierById(appId) {
         const stepperHtml = stages.map((stg, i) => {
             let cls = "";
             if (app.status === "Rejected") {
-                cls = i === 0 ? "completed" : (i === 1 ? "completed" : "");
+                cls = i === 0 ? "completed" : "";
             } else if (i < currentIdx) {
                 cls = "completed";
             } else if (i === currentIdx) {
@@ -522,21 +502,18 @@ async function openDossierById(appId) {
         }).join("");
         document.getElementById("dossier-stepper").innerHTML = stepperHtml;
 
-        // Consumer Info
         const c = app.consumer || {};
         document.getElementById("dossier-consumer-name").textContent = c.full_name || "—";
         document.getElementById("dossier-consumer-contact").textContent = `${c.phone || "—"} | ${c.email || "—"}`;
         document.getElementById("dossier-consumer-id").textContent = c.national_id || "—";
         document.getElementById("dossier-consumer-address").textContent = `${c.address || "—"}, ${c.city || ""}, PIN: ${c.pincode || ""}`;
 
-        // Technical Specs
         document.getElementById("dossier-tech-load").textContent = `${app.requested_load_kw} kW (${app.phase})`;
         document.getElementById("dossier-tech-sanctioned").textContent = app.sanctioned_load_kw ? `${app.sanctioned_load_kw} kW` : "Pending Sanction";
         document.getElementById("dossier-tech-substation").textContent = app.substation_name;
         document.getElementById("dossier-tech-premises").textContent = app.premises_type;
         document.getElementById("dossier-tech-quote").textContent = `${UI.formatCurrency(app.quotation_amount)} (${app.payment_status})`;
 
-        // Field Inspection Block
         const inspBlock = document.getElementById("dossier-inspection-block");
         if (app.inspection) {
             inspBlock.style.display = "block";
@@ -549,7 +526,6 @@ async function openDossierById(appId) {
             inspBlock.style.display = "none";
         }
 
-        // Meter Block
         const meterBlock = document.getElementById("dossier-meter-block");
         if (app.meter) {
             meterBlock.style.display = "block";
@@ -561,7 +537,6 @@ async function openDossierById(appId) {
             meterBlock.style.display = "none";
         }
 
-        // Audit Trail Timeline
         const auditContainer = document.getElementById("dossier-audit-timeline");
         auditContainer.innerHTML = (app.audit_logs || []).map(log => `
             <div class="timeline-item">
@@ -591,12 +566,12 @@ async function openEditAppModal(appId) {
         document.getElementById("edit-app-sanctioned-load").value = app.sanctioned_load_kw || app.requested_load_kw;
         document.getElementById("edit-app-payment-status").value = app.payment_status;
         document.getElementById("edit-app-quote-amount").value = app.quotation_amount;
-        document.getElementById("edit-app-officer").value = "Section Officer / JE";
+        document.getElementById("edit-app-officer").value = "Section Officer";
         document.getElementById("edit-app-note").value = "";
 
         UI.openModal("modal-edit-application");
     } catch (error) {
-        UI.showToast("Failed to fetch application details", "error");
+        UI.showToast("Failed to fetch application", "error");
     }
 }
 
@@ -629,7 +604,7 @@ async function handleUpdateApplication(e) {
 }
 
 function promptDeleteApplication(appId) {
-    if (confirm("Are you sure you want to cancel and delete this connection application? This action cannot be undone.")) {
+    if (confirm("Are you sure you want to cancel and delete this connection application?")) {
         API.deleteApplication(appId).then(() => {
             UI.showToast("Application deleted successfully", "success");
             UI.closeAllModals();
@@ -642,13 +617,13 @@ function promptDeleteApplication(appId) {
 }
 
 // =============================================================================
-// 4. FIELD INSPECTIONS & FEASIBILITY VIEW
+// 3. INSPECTIONS
 // =============================================================================
 async function loadInspections() {
     const container = document.getElementById("inspections-table-body");
     if (!container) return;
 
-    container.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 40px;"><div class="spinner" style="margin:0 auto 10px;"></div>Loading inspections...</td></tr>`;
+    container.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 30px;"><div class="spinner" style="margin:0 auto 8px;"></div>Loading inspections...</td></tr>`;
 
     try {
         const inspections = await API.getInspections();
@@ -684,9 +659,9 @@ async function loadInspections() {
                 <td>${insp.pole_distance_meters} m</td>
                 <td>
                     <div>${insp.transformer_id}</div>
-                    <div style="font-size: 0.76rem; color: var(--text-dim);">${insp.transformer_capacity_kva} kVA</div>
+                    <div style="font-size: 0.74rem; color: var(--text-dim);">${insp.transformer_capacity_kva} kVA</div>
                 </td>
-                <td>${insp.completed_at ? UI.formatDateTime(insp.completed_at) : '<span style="color:var(--accent-amber);">Scheduled</span>'}</td>
+                <td>${insp.completed_at ? UI.formatDateTime(insp.completed_at) : '<span style="color:var(--amber);">Scheduled</span>'}</td>
                 <td>
                     <button class="btn btn-primary btn-sm" onclick="openRecordInspectionModal(${insp.id})">
                         📝 Record Survey
@@ -696,7 +671,7 @@ async function loadInspections() {
         `).join("");
 
     } catch (error) {
-        container.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--accent-rose); padding: 30px;">Failed to load inspections: ${error.message}</td></tr>`;
+        container.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--rose); padding: 20px;">Failed: ${error.message}</td></tr>`;
     }
 }
 
@@ -712,7 +687,7 @@ async function handleScheduleInspection(e) {
         inspector_name: document.getElementById("sched-insp-inspector").value.trim(),
         feasibility_status: "Feasible",
         pole_distance_meters: parseFloat(document.getElementById("sched-insp-pole").value) || 25.0,
-        transformer_id: document.getElementById("sched-insp-transformer").value.trim() || "TR-MAIN-01",
+        transformer_id: document.getElementById("sched-insp-transformer").value.trim() || "TR-CENTRAL-04",
         transformer_capacity_kva: parseFloat(document.getElementById("sched-insp-kva").value) || 100.0,
         meter_box_ready: true,
         remarks: document.getElementById("sched-insp-remarks").value.trim()
@@ -759,22 +734,22 @@ async function handleCompleteInspection(e) {
     try {
         await API.completeInspection(inspId, payload);
         UI.closeModal("modal-record-inspection");
-        UI.showToast("Inspection findings recorded and application status updated!", "success");
+        UI.showToast("Survey recorded and status updated!", "success");
         loadInspections();
         loadDashboard();
     } catch (error) {
-        UI.showToast(`Failed to record survey: ${error.message}`, "error");
+        UI.showToast(`Recording failed: ${error.message}`, "error");
     }
 }
 
 // =============================================================================
-// 5. SMART METERS & GRID REGISTRY VIEW
+// 4. SMART METERS
 // =============================================================================
 async function loadMeters() {
     const container = document.getElementById("meters-table-body");
     if (!container) return;
 
-    container.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 40px;"><div class="spinner" style="margin:0 auto 10px;"></div>Loading smart meters...</td></tr>`;
+    container.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 30px;"><div class="spinner" style="margin:0 auto 8px;"></div>Loading smart meters...</td></tr>`;
 
     try {
         const meters = await API.getMeters();
@@ -797,14 +772,14 @@ async function loadMeters() {
         container.innerHTML = meters.map(meter => `
             <tr>
                 <td>
-                    <span style="font-family: monospace; font-weight: 700; color: #38bdf8; font-size: 0.95rem;">
+                    <span style="font-family: monospace; font-weight: 700; color: #38bdf8; font-size: 0.9rem;">
                         ${meter.meter_serial_number}
                     </span>
-                    <div style="font-size: 0.75rem; color: var(--text-dim);">App #${meter.application_id}</div>
+                    <div style="font-size: 0.74rem; color: var(--text-dim);">App #${meter.application_id}</div>
                 </td>
                 <td>
                     <div style="font-weight: 600;">${meter.meter_type}</div>
-                    <div style="font-size: 0.76rem; color: var(--text-dim);">${meter.phase}</div>
+                    <div style="font-size: 0.74rem; color: var(--text-dim);">${meter.phase}</div>
                 </td>
                 <td>${meter.substation_name}</td>
                 <td>${meter.feeder_line}</td>
@@ -825,7 +800,7 @@ async function loadMeters() {
         `).join("");
 
     } catch (error) {
-        container.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--accent-rose); padding: 30px;">Failed to load meters: ${error.message}</td></tr>`;
+        container.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--rose); padding: 20px;">Failed: ${error.message}</td></tr>`;
     }
 }
 
@@ -850,7 +825,7 @@ async function handleAllocateMeter(e) {
     try {
         const created = await API.allocateMeter(payload);
         UI.closeModal("modal-allocate-meter");
-        UI.showToast(`Meter ${created.meter_serial_number} allocated & energized!`, "success");
+        UI.showToast(`Meter ${created.meter_serial_number} allocated!`, "success");
         loadMeters();
         loadDashboard();
     } catch (error) {
@@ -874,13 +849,13 @@ function openUpdateMeterModal(meterId) {
 }
 
 // =============================================================================
-// 6. OUTAGE & SERVICE GRIEVANCES VIEW
+// 5. GRIEVANCES
 // =============================================================================
 async function loadGrievances() {
     const container = document.getElementById("grievances-table-body");
     if (!container) return;
 
-    container.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 40px;"><div class="spinner" style="margin:0 auto 10px;"></div>Loading grievance desk...</td></tr>`;
+    container.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 30px;"><div class="spinner" style="margin:0 auto 8px;"></div>Loading grievance desk...</td></tr>`;
 
     try {
         const grievances = await API.getGrievances({
@@ -912,15 +887,15 @@ async function loadGrievances() {
                         <span style="font-family: monospace; font-weight: 700; color: #f59e0b;">
                             ${grv.grievance_number}
                         </span>
-                        <div style="font-size: 0.75rem; color: var(--text-dim);">${UI.formatDateTime(grv.created_at)}</div>
+                        <div style="font-size: 0.74rem; color: var(--text-dim);">${UI.formatDateTime(grv.created_at)}</div>
                     </td>
                     <td>
                         <div style="font-weight: 600;">${c.full_name || "Consumer"}</div>
-                        <div style="font-size: 0.78rem; color: var(--text-muted);">${c.phone || "—"}</div>
+                        <div style="font-size: 0.76rem; color: var(--text-muted);">${c.phone || "—"}</div>
                     </td>
                     <td>
                         <div style="font-weight: 600;">${grv.category}</div>
-                        <div style="font-size: 0.8rem; color: var(--text-muted); max-width: 260px; white-space: normal;">
+                        <div style="font-size: 0.78rem; color: var(--text-muted); max-width: 240px; white-space: normal;">
                             ${grv.description}
                         </div>
                     </td>
@@ -936,7 +911,7 @@ async function loadGrievances() {
         }).join("");
 
     } catch (error) {
-        container.innerHTML = `<tr><td colspan="6" style="text-align:center; color: var(--accent-rose); padding: 30px;">Error: ${error.message}</td></tr>`;
+        container.innerHTML = `<tr><td colspan="6" style="text-align:center; color: var(--rose); padding: 20px;">Error: ${error.message}</td></tr>`;
     }
 }
 
@@ -975,7 +950,7 @@ async function handleCreateGrievance(e) {
         loadGrievances();
         loadDashboard();
     } catch (error) {
-        UI.showToast(`Failed to register grievance: ${error.message}`, "error");
+        UI.showToast(`Failed: ${error.message}`, "error");
     }
 }
 
@@ -1004,7 +979,7 @@ async function handleUpdateGrievance(e) {
     try {
         await API.updateGrievance(grvId, payload);
         UI.closeModal("modal-update-grievance");
-        UI.showToast("Grievance status updated!", "success");
+        UI.showToast("Grievance updated!", "success");
         loadGrievances();
         loadDashboard();
     } catch (error) {
@@ -1013,11 +988,11 @@ async function handleUpdateGrievance(e) {
 }
 
 // =============================================================================
-// 7. CONSUMER TRACK APPLICATION VIEW
+// 6. TRACK APPLICATION
 // =============================================================================
 async function searchTrackApplication(appNum) {
     const resultContainer = document.getElementById("track-result-container");
-    resultContainer.innerHTML = `<div style="text-align:center; padding: 40px;"><div class="spinner" style="margin:0 auto 10px;"></div>Fetching application status...</div>`;
+    resultContainer.innerHTML = `<div style="text-align:center; padding: 30px;"><div class="spinner" style="margin:0 auto 8px;"></div>Fetching application...</div>`;
 
     try {
         const app = await API.getApplication(appNum);
@@ -1052,11 +1027,11 @@ async function searchTrackApplication(appNum) {
         const c = app.consumer || {};
 
         resultContainer.innerHTML = `
-            <div class="panel-card" style="margin-top: 24px;">
-                <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 18px; margin-bottom: 18px;">
+            <div class="panel-card" style="margin-top: 16px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 14px; margin-bottom: 14px;">
                     <div>
-                        <h3 style="font-size: 1.4rem;">Application: ${app.application_number}</h3>
-                        <p style="color: var(--text-muted); font-size: 0.85rem;">Submitted on ${UI.formatDateTime(app.created_at)}</p>
+                        <h3 style="font-size: 1.25rem;">Application: ${app.application_number}</h3>
+                        <p style="color: var(--text-muted); font-size: 0.8rem;">Submitted on ${UI.formatDateTime(app.created_at)}</p>
                     </div>
                     <div>
                         ${UI.getStatusBadge(app.status)}
@@ -1067,53 +1042,53 @@ async function searchTrackApplication(appNum) {
                     ${stepperHtml}
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 24px;">
-                    <div style="background: rgba(0,0,0,0.2); padding: 18px; border-radius: var(--radius-md);">
-                        <h4 style="font-size: 0.95rem; margin-bottom: 12px; color: var(--accent-cyan);">Applicant & Premises</h4>
-                        <p style="font-size: 0.88rem;"><strong>Name:</strong> ${c.full_name || "—"}</p>
-                        <p style="font-size: 0.88rem;"><strong>Phone:</strong> ${c.phone || "—"}</p>
-                        <p style="font-size: 0.88rem;"><strong>Address:</strong> ${c.address || "—"}, ${c.city || ""}</p>
-                        <p style="font-size: 0.88rem;"><strong>Premises Type:</strong> ${app.premises_type}</p>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px;">
+                    <div style="background: rgba(0,0,0,0.2); padding: 14px; border-radius: var(--radius-md);">
+                        <h4 style="font-size: 0.88rem; margin-bottom: 8px; color: var(--cyan-light);">Applicant & Premises</h4>
+                        <p style="font-size: 0.84rem;"><strong>Name:</strong> ${c.full_name || "—"}</p>
+                        <p style="font-size: 0.84rem;"><strong>Phone:</strong> ${c.phone || "—"}</p>
+                        <p style="font-size: 0.84rem;"><strong>Address:</strong> ${c.address || "—"}, ${c.city || ""}</p>
+                        <p style="font-size: 0.84rem;"><strong>Premises:</strong> ${app.premises_type}</p>
                     </div>
 
-                    <div style="background: rgba(0,0,0,0.2); padding: 18px; border-radius: var(--radius-md);">
-                        <h4 style="font-size: 0.95rem; margin-bottom: 12px; color: var(--accent-amber);">Power Connection Demand Note</h4>
-                        <p style="font-size: 0.88rem;"><strong>Tariff Category:</strong> ${app.category}</p>
-                        <p style="font-size: 0.88rem;"><strong>Requested Load:</strong> ${app.requested_load_kw} kW (${app.phase})</p>
-                        <p style="font-size: 0.88rem;"><strong>Substation:</strong> ${app.substation_name}</p>
-                        <p style="font-size: 1.1rem; font-weight: 700; color: #38bdf8; margin-top: 6px;">
-                            Total Quotation: ${UI.formatCurrency(app.quotation_amount)} 
-                            <span style="font-size: 0.75rem; color: ${app.payment_status === 'Paid' ? '#34d399' : '#f59e0b'};">(${app.payment_status.toUpperCase()})</span>
+                    <div style="background: rgba(0,0,0,0.2); padding: 14px; border-radius: var(--radius-md);">
+                        <h4 style="font-size: 0.88rem; margin-bottom: 8px; color: var(--amber-light);">Power Demand Note</h4>
+                        <p style="font-size: 0.84rem;"><strong>Tariff:</strong> ${app.category}</p>
+                        <p style="font-size: 0.84rem;"><strong>Load:</strong> ${app.requested_load_kw} kW (${app.phase})</p>
+                        <p style="font-size: 0.84rem;"><strong>Substation:</strong> ${app.substation_name}</p>
+                        <p style="font-size: 0.95rem; font-weight: 700; color: #38bdf8; margin-top: 4px;">
+                            Quotation: ${UI.formatCurrency(app.quotation_amount)} 
+                            <span style="font-size: 0.72rem; color: ${app.payment_status === 'Paid' ? '#34d399' : '#f59e0b'};">(${app.payment_status.toUpperCase()})</span>
                         </p>
                     </div>
                 </div>
 
                 ${app.meter ? `
-                    <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); padding: 18px; border-radius: var(--radius-md); margin-top: 20px;">
-                        <h4 style="color: #34d399; font-size: 1rem; margin-bottom: 8px;">⚡ Energized Smart Meter Details</h4>
-                        <p style="font-size: 0.9rem;"><strong>Meter Serial:</strong> <span style="font-family: monospace;">${app.meter.meter_serial_number}</span> (${app.meter.meter_type})</p>
-                        <p style="font-size: 0.9rem;"><strong>Feeder Line:</strong> ${app.meter.feeder_line}</p>
-                        <p style="font-size: 0.9rem;"><strong>Current Reading:</strong> ${app.meter.current_reading_kwh} kWh</p>
+                    <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); padding: 14px; border-radius: var(--radius-md); margin-top: 14px;">
+                        <h4 style="color: #34d399; font-size: 0.9rem; margin-bottom: 6px;">⚡ Energized Smart Meter</h4>
+                        <p style="font-size: 0.84rem;"><strong>Serial:</strong> <span style="font-family: monospace;">${app.meter.meter_serial_number}</span> (${app.meter.meter_type})</p>
+                        <p style="font-size: 0.84rem;"><strong>Feeder:</strong> ${app.meter.feeder_line}</p>
+                        <p style="font-size: 0.84rem;"><strong>Reading:</strong> ${app.meter.current_reading_kwh} kWh</p>
                     </div>
                 ` : ''}
 
-                <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
-                    <button class="btn btn-secondary" onclick="window.print()">🖨️ Print Application Dossier</button>
+                <div style="margin-top: 16px; display: flex; justify-content: flex-end; gap: 8px;">
+                    <button class="btn btn-secondary" onclick="window.print()">🖨️ Print Application</button>
                 </div>
             </div>
         `;
 
     } catch (error) {
         resultContainer.innerHTML = `
-            <div class="panel-card" style="margin-top: 24px; text-align: center; padding: 40px;">
-                <div style="color: var(--accent-rose); font-size: 1.2rem; font-weight: 700; margin-bottom: 8px;">Application Not Found</div>
-                <p style="color: var(--text-muted); font-size: 0.9rem;">No connection application matches '${appNum}'. Please verify the application number (e.g. APP-2026-1001).</p>
+            <div class="panel-card" style="margin-top: 16px; text-align: center; padding: 30px;">
+                <div style="color: var(--rose); font-size: 1.1rem; font-weight: 700; margin-bottom: 6px;">Application Not Found</div>
+                <p style="color: var(--text-muted); font-size: 0.84rem;">No application matches '${appNum}'. Verify the number (e.g. APP-2026-1001).</p>
             </div>
         `;
     }
 }
 
-// Explicit Window Global Bindings
+// Global Window Bindings
 window.switchView = switchView;
 window.loadDashboard = loadDashboard;
 window.loadApplications = loadApplications;

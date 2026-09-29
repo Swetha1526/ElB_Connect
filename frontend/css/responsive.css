@@ -1,29 +1,28 @@
 /* frontend/css/responsive.css - Responsive Breakpoints */
 
-/* Mobile menu toggle button */
 .mobile-toggle {
   display: none;
   background: none;
   border: none;
-  color: var(--text-main);
-  font-size: 1.5rem;
+  color: var(--text-white);
+  font-size: 1.4rem;
   cursor: pointer;
-  padding: 6px;
+  padding: 4px;
 }
 
 /* Tablet (max-width: 1024px) */
 @media (max-width: 1024px) {
   .sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
     transform: translateX(-100%);
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
   }
 
   .sidebar.mobile-open {
     transform: translateX(0);
-    box-shadow: var(--shadow-lg);
-  }
-
-  .main-wrapper {
-    margin-left: 0;
   }
 
   .mobile-toggle {
@@ -35,37 +34,38 @@
   }
 
   .header-search {
-    width: 260px;
+    width: 240px;
   }
 
   .top-header {
-    padding: 0 20px;
+    padding: 0 16px;
   }
 
   .content-body {
-    padding: 20px;
+    padding: 16px;
   }
 }
 
 /* Mobile (max-width: 768px) */
 @media (max-width: 768px) {
   .top-header {
-    height: 64px;
-    padding: 0 16px;
+    height: 58px;
+    min-height: 58px;
+    padding: 0 12px;
   }
 
   .header-search {
-    display: none; /* Accessible via search in view toolbars */
+    display: none;
   }
 
   .content-body {
-    padding: 16px;
+    padding: 14px;
   }
 
   .page-title-bar {
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
+    gap: 10px;
   }
 
   .kpi-grid {
@@ -75,7 +75,7 @@
   .toolbar-card {
     flex-direction: column;
     align-items: stretch;
-    padding: 16px;
+    padding: 12px;
   }
 
   .filter-group {
@@ -97,17 +97,17 @@
   }
 
   .modal-dialog {
-    margin: 10px;
-    max-height: 95vh;
+    margin: 8px;
+    max-height: 92vh;
   }
 
   .modal-header, .modal-body, .modal-footer {
-    padding: 18px;
+    padding: 14px 16px;
   }
 
   .stepper-container {
     flex-wrap: wrap;
-    gap: 16px;
+    gap: 12px;
     justify-content: center;
   }
 
@@ -122,9 +122,9 @@
   }
 
   .toast-container {
-    left: 16px;
-    right: 16px;
-    top: 16px;
+    left: 12px;
+    right: 12px;
+    top: 12px;
   }
 
   .toast {
